@@ -13,4 +13,6 @@ nrpe_user=nagios
 nrpe_group=nagios
 {% endif %}
 
-{{ nrpe_check_commands }}
+{% for check in nrpe_check_commands %}
+  {{ nrpe_check_commands[check] }}
+{% endfor %}
