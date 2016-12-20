@@ -1,38 +1,58 @@
 ---
-- name: Install Mysql prerequisite
-  apt: name=python-mysqldb
+- name: Install postgresql prerequisite
+  apt: name=python-psycopg2
 
 - name: Install Icinga2 IDO modules on Debian family
-  apt: name=icinga2-ido-mysql
+  apt: name=icinga2-ido-pgsql
        state=latest
 
-- name: Create a IDO Database for Icinga2
-  mysql_db: name={{ icinga2_db }}
-            state=present
-  register: icinga_ido_db
 
-- name: Create Icinga2 IDO Database User and configure Grants
-  mysql_user: name={{ icinga2_db_user }}
-              password={{ icinga2_db_pass }}
-              state=present
-              priv="{{ icinga2_db }}.*:GRANT,INSERT,SELECT,UPDATE,DELETE,DROP,CREATE VIEW,INDEX,EXECUTE"
+# - name: Create Icinga2 IDO Database User and configure Grants
+#   postgresql_user: 
+#     name: '{{ icinga2_db_user }}'
+#     password: '{{ icinga2_db_pass }}'
+#   delegate_to: 'monitor-02.bdsk.boxdice.com'    
+#   become: yes 
+#   become_user: 'postgres'
+#
+#- name: Create a IDO Database for Icinga2
+#  postgresql_db: name={{ icinga2_db }}
+#            state=present
+#            login_user={{ icinga2_db_user }}
+#            login_pasword={{ icinga2_db_pass }}
+#  register: icinga_ido_db
+#
+#- name: Configure Grants for Icinga2 IDO DB User
+#  postgresql_user: name={{ icinga2_db_user }}
+#              password={{ icinga2_db_pass }}
+#              state=present
+#              priv="{{ icinga2_db }}.*:GRANT,INSERT,SELECT,UPDATE,DELETE,DROP,CREATE VIEW,INDEX,EXECUTE"
+#              login_user= {{ postgres.username  }}
+#              login_password= {{ postgres.password }}
+#
+- name: Create database and users
+  include: ../roles/postgres/tasks/create_db.yml
+  when: control is defined and
+        control.postgres == True
 
-- name: Import the IDO Schema on Icinga Web Database (only once)
-  mysql_db: name={{ icinga2_db }}
-            state=import
-            target={{ icinga2_web_mysql_schema_debian }}
-  when: icinga_ido_db.changed == true
 
-- name: Configure Icinga2 Ido Mysql Feature
-  template: src=ido-mysql.conf.j2
-            dest={{ icinga2_ido_mysql_conf }}
+#- name: Import the IDO Schema on Icinga Web Database (only once)
+#  postgresql_db: name={{ icinga2_db }}
+#            state=import
+#            target={{ icinga2_web_postgresql_schema_debian }}
+#  #when: icinga_ido_db.changed == true
+#            #TODO: import schema
+
+- name: Configure Icinga2 Ido postgresql Feature
+  template: src=ido-postgresql.conf.j2
+            dest={{ icinga2_ido_postgresql_conf }}
             backup=yes
             owner=nagios
             group=nagios
             mode=0640
 
-- name: Enable Icinga2 Ido Mysql Feature
-  command: "icinga2 feature enable ido-mysql"
+- name: Enable Icinga2 Ido postgresql Feature
+  command: "icinga2 feature enable ido-pgsql"
   register: features_result
   changed_when: "'for these changes to take effect' in features_result.stdout"
   notify:
@@ -44,26 +64,40 @@
   with_items: '{{ icinga2_web2_ui_deb }}'
   tags: icinga2-ansible-web2-ui-install
 
+
+
+- name: Create database and users web2
+  include: ../roles/postgres/tasks/create_db.yml
+  when: control is defined and
+        control.postgres == True
+  vars: 
+    postgres:
+      username: "{{ icinga2_web2_db_user }}"
+      password: "{{ icinga2_web2_db_pass }}"
+      database: "{{ icinga2_web2_db }}"
+
+  #TODO: run as the first one
 - name: Create a Web Database for Icinga2
-  mysql_db: name={{ icinga2_web2_db }}
+  postgresql_db: name={{ icinga2_web2_db }}
             state=present
   register: icinga_web_db
 
-- name: Create Icinga2 Web Database User and configure Grants
-  mysql_user: name={{ icinga2_web2_db_user }}
-              password={{ icinga2_web2_db_pass }}
-              state=present
-              priv="{{ icinga2_web2_db }}.*:GRANT,INSERT,SELECT,UPDATE,DELETE,DROP,CREATE VIEW,INDEX,EXECUTE"
+#- name: Create Icinga2 Web Database User and configure Grants
+#  postgresql_user: name={{ icinga2_web2_db_user }}
+#              password={{ icinga2_web2_db_pass }}
+#              state=present
+#              priv="{{ icinga2_web2_db }}.GRANT,INSERT,SELECT,UPDATE,DELETE,DROP,CREATE VIEW,INDEX,EXECUTE"
+#              db={{ icinga2_web2_db }}
 
 - name: Import the Web Schema on Icinga Web Database (only once)
-  mysql_db: name={{ icinga2_web2_db }}
+  postgresql_db: name={{ icinga2_web2_db }}
             state=import
-            target={{ icinga2_web2_mysql_schema_debian }}
+            target={{ icinga2_web2_postgresql_schema_debian }}
   when: icinga_web_db.changed == true
 
-- name: Configure Icinga2 Ido Mysql Feature
-  template: src=ido-mysql.conf.j2
-            dest={{ icinga2_ido_mysql_conf }}
+- name: Configure Icinga2 Ido postgresql Feature
+  template: src=ido-postgresql.conf.j2
+            dest={{ icinga2_ido_postgresql_conf }}
             backup=yes
             owner=nagios
             group=nagios
@@ -74,7 +108,7 @@
            state=restarted
            enabled=yes
   with_items:
-    - apache2
+    - nginx
     - icinga2
 
 - name: Add user www-data to group icingaweb2
