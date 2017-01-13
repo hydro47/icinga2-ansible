@@ -83,6 +83,8 @@
   postgresql_db: name={{ icinga2_web2_db }}
             state=present
   register: icinga_web_db
+  become_user: name={{ icinga2_web2_db_user }}
+
 
 #- name: Create Icinga2 Web Database User and configure Grants
 #  postgresql_user: name={{ icinga2_web2_db_user }}
@@ -94,7 +96,7 @@
 - name: Import the Web Schema on Icinga Web Database (only once)
   postgresql_db: name={{ icinga2_web2_db }}
             state=import
-            target={{ icinga2_web2_postgresql_schema_debian }}
+            template={{ icinga2_web2_postgresql_schema_debian }}
   when: icinga_web_db.changed == true
 
 - name: Configure Icinga2 Ido postgresql Feature
