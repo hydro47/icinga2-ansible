@@ -24,6 +24,7 @@ icinga2_web2_ui_rpm:
 
 icinga2_web2_ui_deb:
  - { package: "icingaweb2" }
+ - { package: "icingaweb2-module-monitoring" }
 
 db_extensions:        'uuid-ossp'
 postgres:

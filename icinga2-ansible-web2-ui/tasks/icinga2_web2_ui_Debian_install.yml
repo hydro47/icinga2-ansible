@@ -44,7 +44,7 @@
 #            #TODO: import schema
 
 - name: Configure Icinga2 Ido postgresql Feature
-  template: src=ido-postgresql.conf.j2
+  template: src=ido-pgsql.conf.j2
             dest={{ icinga2_ido_postgresql_conf }}
             backup=yes
             owner=nagios
@@ -58,11 +58,13 @@
   notify:
    - restart icinga2
 
-- name: Install Icinga Web2 on Debian family
+- name: Install Icinga Web2 on Debian family and module monitoring
   apt: name={{ item.package }}
        state=latest
-  with_items: '{{ icinga2_web2_ui_deb }}'
-  tags: icinga2-ansible-web2-ui-install
+  with_items: 
+    - '{{ icinga2_web2_ui_deb }}'
+  tags: 
+    - icinga2-ansible-web2-ui-install
 
 
 
@@ -131,3 +133,19 @@
   debug: msg="Now generate a token with 'icingacli setup token create' and go at http://IP//icingaweb2/setup to continue the installation"
   tags: icinga2-ansible-web2-ui-install
 
+- name: CLI SETUP TOKEN
+  command: "icingacli setup token create"
+  tags: 
+    - icinga_config
+
+- name: enable monitoring
+  command: "ln -s /usr/share/icingaweb2/modules/monitoring /etc/icingaweb2/enabledModules/monitoring"
+  tags:
+    - enable-monitoring
+
+- name: configure monitoring backend
+  template:
+    src: etc/icingaweb2/resources.ini.j2
+    dest: /etc/icingaweb2/resources.ini
+  tags:
+    - icinga2-config
