@@ -1,22 +1,80 @@
 ---
-- name: Install Nrpe and Plugins
-  apt: pkg={{ item.package }} 
-       state=latest
-       update_cache=yes
-       install_recommends=no
+
+- name: Register nagios-nrpe-server version
+  command:
+    dpkg-query -f '${version}\n' -W nagios-nrpe-server
+  register:
+    nagios_nrpe_server_version
+  tags:
+    - debug
+    - nrpe_agent_install
+
+- name: Set fact is_nrpe_v3_available
+  set_fact:
+    is_nrpe_v3_available={{ nagios_nrpe_server_version.stdout | regex_replace('^(\d+\.\d+).*', '\\1') | version_compare('3.0', '>=', strict=True) }}
+  tags:
+    - apt
+    - nrpe_agent_install
+    - debug
+
+# NOTE Add the debian testing repos from where we will pull in nrpe >= 3.0
+- name: Add debian testing repo
+  template:
+    src:   etc/apt/sources.list.d/nrpe-debian-testing.list.j2
+    dest: /etc/apt/sources.list.d/nrpe-debian-testing.list
+  when: 
+    - is_nrpe_v3_available != True
+  tags:
+    - apt
+    - repo
+    - debug
+
+- name: Update apt cache
+  apt: 
+    update_cache: yes
+    cache_valid_time: 3600
+  when: 
+    - is_nrpe_v3_available != True
+  tags:
+    - apt
+
+- name: Install nagios-nrpe-{server,plugins}
+  apt: 
+    pkg:   '{{ item.package }}'
+    state: latest
   with_items: "{{ nrpe_agent_Debian }}"
   tags:
    - nrpe_agent_install
 
-- name: Copy Nrpe Configuration
-  template: src=nrpe.cfg.j2
-            dest={{ nrpe_agent_config }}
-            owner=root
-            group=root
-            mode=0644
-            backup=yes
+- name: Copy nrpe configuration
+  template:
+    src:     nrpe.cfg.j2
+    dest:    '{{ nrpe_agent_config }}'
+    owner:   root
+    group:   root
+    mode:    0644
+    backup:  yes
   notify:
    - restart nagios-nrpe-server
   tags:
    - nrpe_agent_config
+
+- name: Remove debian testing repo
+  file:
+    path:  /etc/apt/sources.list.d/nrpe-debian-testing.list
+    state: absent
+  when: 
+    - is_nrpe_v3_available != True
+  tags:
+    - apt
+    - repo
+
+- name: Update apt cache
+  apt: 
+    update_cache: yes
+    cache_valid_time: 3600
+  when: 
+    - is_nrpe_v3_available != True
+  tags:
+    - apt
 
