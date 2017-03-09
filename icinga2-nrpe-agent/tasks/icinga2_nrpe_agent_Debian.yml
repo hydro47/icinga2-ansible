@@ -1,12 +1,13 @@
 ---
 
-- name: Register nagios-nrpe-server version
-  command:
-    dpkg-query -f '${version}\n' -W nagios-nrpe-server
+- name: Register nagios-nrpe-server latest available version
+  shell:
+    apt-cache madison nagios-nrpe-server |
+      awk -F'| *' 'NR == 1 { print $3 }'
   register:
     nagios_nrpe_server_version
+  changed_when: False
   tags:
-    - debug
     - nrpe_agent_install
 
 - name: Set fact is_nrpe_v3_available
@@ -15,28 +16,29 @@
   tags:
     - apt
     - nrpe_agent_install
-    - debug
 
-# NOTE Add the debian testing repos from where we will pull in nrpe >= 3.0
+# NOTE Add the debian testing repo from where we will pull in nrpe >= 3.0
 - name: Add debian testing repo
   template:
     src:   etc/apt/sources.list.d/nrpe-debian-testing.list.j2
     dest: /etc/apt/sources.list.d/nrpe-debian-testing.list
   when: 
     - is_nrpe_v3_available != True
+  register:
+    nrpe_debian_testing_repo_installed
   tags:
     - apt
     - repo
-    - debug
+    - nrpe_agent_install
 
 - name: Update apt cache
   apt: 
     update_cache: yes
-    cache_valid_time: 3600
   when: 
-    - is_nrpe_v3_available != True
+    - nrpe_debian_testing_repo_installed.changed
   tags:
     - apt
+    - nrpe_agent_install
 
 - name: Install nagios-nrpe-{server,plugins}
   apt: 
@@ -64,17 +66,19 @@
     path:  /etc/apt/sources.list.d/nrpe-debian-testing.list
     state: absent
   when: 
-    - is_nrpe_v3_available != True
+    - nrpe_debian_testing_repo_installed.changed
   tags:
     - apt
     - repo
+    - nrpe_agent_install
 
 - name: Update apt cache
   apt: 
     update_cache: yes
     cache_valid_time: 3600
   when: 
-    - is_nrpe_v3_available != True
+    - nrpe_debian_testing_repo_installed.changed
   tags:
     - apt
+    - nrpe_agent_install
 
