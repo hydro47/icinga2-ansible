@@ -72,6 +72,7 @@
   notify:
    - restart nagios-nrpe-server
   tags:
+   - nrpe_agent_install
    - nrpe_agent_config
 
 - name: Remove debian testing repo
