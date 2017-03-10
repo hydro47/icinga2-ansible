@@ -40,11 +40,24 @@
     - apt
     - nrpe_agent_install
 
-- name: Install nagios-nrpe-{server,plugins}
+- name: Install nagios-nrpe-{server,plugins} from debian testing
+  apt: 
+    pkg:   '{{ item.package }}'
+    state: latest
+    default_release: testing
+  with_items: "{{ nrpe_agent_Debian }}"
+  when:
+    - nrpe_debian_testing_repo_installed.changed
+  tags:
+   - nrpe_agent_install
+
+- name: Install nagios-nrpe-{server,plugins} from debian stable
   apt: 
     pkg:   '{{ item.package }}'
     state: latest
   with_items: "{{ nrpe_agent_Debian }}"
+  when:
+    - nrpe_debian_testing_repo_installed.changed == False
   tags:
    - nrpe_agent_install
 
