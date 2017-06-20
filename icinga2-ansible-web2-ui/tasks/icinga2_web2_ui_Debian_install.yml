@@ -63,7 +63,6 @@
        state=latest
   with_items: 
     - '{{ icinga2_web2_ui_deb }}'
-    - icingacli
   tags: 
     - icinga2-ansible-web2-ui-install
 
@@ -130,6 +129,13 @@
   debug: msg="Now generate a token with 'icingacli setup token create' and visit http://SERVERIP/icingaweb2/setup to continue the installation"
   tags: icinga2-ansible-web2-ui-install
 
+- name: Install Icinga Web2 on Debian family and module monitoring
+  apt: name={{ item }}
+       state=latest
+  with_items: 
+    - 'icingacli'
+  tags: 
+    - icinga2-ansible-web2-ui-install
 - name: CLI SETUP TOKEN
   command: "icingacli setup token create"
   tags: 
