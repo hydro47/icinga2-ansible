@@ -63,6 +63,7 @@
        state=latest
   with_items: 
     - '{{ icinga2_web2_ui_deb }}'
+    - icingacli
   tags: 
     - icinga2-ansible-web2-ui-install
 
