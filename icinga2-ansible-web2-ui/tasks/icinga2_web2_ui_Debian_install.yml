@@ -72,20 +72,21 @@
   include: ../roles/postgres/tasks/create_db.yml
   when: control is defined and
         control.postgres == True
+  register: icinga_web_db
   vars: 
     postgres:
       username: "{{ icinga2_web2_db_user }}"
       password: "{{ icinga2_web2_db_pass }}"
       database: "{{ icinga2_web2_db }}"
 
-  #TODO: run as the first one
-- name: Create a Web Database for Icinga2
-  postgresql_db: name={{ icinga2_web2_db }}
-            state=present
-  register: icinga_web_db
-  become_user: name={{ icinga2_web2_db_user }}
-
-
+  #  #TODO: run as the first one
+  #- name: Create a Web Database for Icinga2
+  #  postgresql_db: name={{ icinga2_web2_db }}
+  #            state=present
+  #  register: icinga_web_db
+  #  become_user: name={{ icinga2_web2_db_user }}
+  #
+  #
 #- name: Create Icinga2 Web Database User and configure Grants
 #  postgresql_user: name={{ icinga2_web2_db_user }}
 #              password={{ icinga2_web2_db_pass }}
