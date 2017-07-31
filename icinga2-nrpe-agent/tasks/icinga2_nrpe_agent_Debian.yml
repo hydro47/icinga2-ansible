@@ -43,7 +43,7 @@
 - name: Install nagios-nrpe-{server,plugins} from debian testing
   apt: 
     pkg:   '{{ item.package }}'
-    state: latest
+    state: present
     default_release: testing
   with_items: "{{ nrpe_agent_Debian }}"
   when:
